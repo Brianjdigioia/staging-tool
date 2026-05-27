@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Staging Prompt Generator</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f6f6f4;
+    --bg-tertiary: #f0efe9;
+    --bg-success: #eaf3de;
+    --bg-danger: #fcebeb;
+    --bg-info: #e6f1fb;
+    --text: #1a1a18;
+    --text-secondary: #6b6b67;
+    --text-tertiary: #9b9b96;
+    --text-success: #3b6d11;
+    --text-danger: #a32d2d;
+    --text-info: #185fa5;
+    --border: rgba(0,0,0,0.12);
+    --border-md: rgba(0,0,0,0.22);
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg-secondary: #242422;
+      --bg-tertiary: #2c2c2a;
+      --bg-success: #173404;
+      --bg-danger: #501313;
+      --bg-info: #042c53;
+      --text: #f0efe9;
+      --text-secondary: #a0a09a;
+      --text-tertiary: #606060;
+      --text-success: #c0dd97;
+      --text-danger: #f09595;
+      --text-info: #b5d4f4;
+      --border: rgba(255,255,255,0.1);
+      --border-md: rgba(255,255,255,0.2);
+    }
+  }
+
+  body {
+    background: var(--bg-tertiary);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem 4rem;
+  }
+
+  #root { width: 100%; max-width: 660px; }
+
+  input, textarea, select {
+    background: var(--bg-secondary);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  input:focus, textarea:focus { border-color: var(--border-md); }
+  textarea { resize: vertical; line-height: 1.6; }
+
+  button {
+    background: var(--bg);
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius);
+    color: var(--text);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    transition: background 0.12s, opacity 0.12s;
+  }
+  button:hover { background: var(--bg-secondary); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .card {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+  }
+
+  .label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .pill {
+    padding: 5px 13px;
+    border-radius: 99px;
+    font-size: 13px;
+    cursor: pointer;
+    border: 0.5px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 400;
+  }
+  .pill.active {
+    border: 1.5px solid var(--border-md);
+    background: var(--bg);
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: var(--radius);
+  }
+  .tag-green { background: var(--bg-success); color: var(--text-success); }
+  .tag-gray  { background: var(--bg-secondary); color: var(--text); }
+
+  .stat {
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinning { animation: spin 1s linear infinite; }
+
+  .drop-zone {
+    border: 1.5px dashed var(--border-md);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop-zone:hover, .drop-zone.over {
+    border-color: #378add;
+    background: var(--bg-info);
+  }
+
+  .tip-box {
+    background: var(--bg-secondary);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .err {
+    background: var(--bg-danger);
+    border: 0.5px solid rgba(162,45,45,0.3);
+    border-radius: var(--radius);
+    color: var(--text-danger);
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+
+  .tab-btn {
+    padding: 5px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    border: 0.5px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+  }
+  .tab-btn.active {
+    background: var(--bg);
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  img.preview {
+    width: 100%;
+    display: block;
+    max-height: 300px;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+  }
+
+  .hist-item {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .hist-item:hover { background: var(--bg-secondary); }
+
+  .sep { height: 1px; background: var(--border); margin: 4px 0; }
+
+  .logo {
+    width: 28px; height: 28px;
+    background: var(--text);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo i { color: var(--bg); font-size: 16px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useCallback } = React;
+
+const STYLES = [
+  { id:"modern",        label:"Moderno"       },
+  { id:"scandinavian",  label:"Escandinavo"   },
+  { id:"industrial",    label:"Industrial"    },
+  { id:"classic",       label:"Clásico"       },
+  { id:"minimalist",    label:"Minimalista"   },
+  { id:"mediterranean", label:"Mediterráneo"  },
+];
+
+const PLATFORMS = [
+  { id:"higgsfield", label:"Higgsfield"        },
+  { id:"midjourney", label:"Midjourney"        },
+  { id:"firefly",    label:"Adobe Firefly"     },
+  { id:"sdxl",       label:"Stable Diffusion"  },
+];
+
+const TIPS = {
+  higgsfield: "Usá este prompt en el modo inpainting o image-to-video de Higgsfield. Combinalo con un prompt de movimiento de cámara suave.",
+  midjourney: "Pegá después de /imagine. Agregá --ar 16:9 --v 6 --style raw para resultados fotorrealistas.",
+  firefly:    "Usá en modo Generative Fill. Seleccioná las áreas vacías antes de aplicar. Firefly respeta la estructura automáticamente.",
+  sdxl:       "Usá con ControlNet (depth o canny) para preservar la arquitectura. Recomendado: DreamShaper XL o RealVisXL.",
+};
+
+const buildSystem = (style, platform) => `You are an expert AI prompt engineer for real estate virtual staging.
+Analyze the empty room photo and generate a professional staging prompt optimized for ${platform}.
+Preferred interior style: ${style}.
+
+STRICT RULES:
+- Never alter walls, ceilings, floors, windows, doors, columns, or any structural element
+- Never change existing paint colors or floor finishes
+- Never add out-of-context elements (no cars indoors, no outdoor furniture inside, etc.)
+- Respect existing scale, perspective, depth, and proportions
+- Only add furniture and decor fitting the detected room type
+
+ANALYSIS: room type, architectural style, fixed elements, natural light, spatial scale.
+
+Respond ONLY with valid JSON, no markdown, no extra text:
+{"room_type":"","detected_style":"","lighting":"","ceiling_height":"low/standard/high","fixed_elements":[],"furniture_added":[],"main_prompt":"","negative_prompt":"","platform_tip":""}`;
+
+function App() {
+  const [apiKey,   setApiKey]   = useState("");
+  const [showKey,  setShowKey]  = useState(false);
+  const [image,    setImage]    = useState(null);
+  const [imgData,  setImgData]  = useState(null);
+  const [style,    setStyle]    = useState("modern");
+  const [platform, setPlatform] = useState("higgsfield");
+  const [result,   setResult]   = useState(null);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState(null);
+  const [copied,   setCopied]   = useState(null);
+  const [over,     setOver]     = useState(false);
+  const [history,  setHistory]  = useState([]);
+  const [tab,      setTab]      = useState("editor");
+  const [main,     setMain]     = useState("");
+  const [neg,      setNeg]      = useState("");
+  const fileRef = useRef(null);
+
+  const loadFile = useCallback((file) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    const r = new FileReader();
+    r.onload = e => {
+      setImage(e.target.result);
+      setImgData(e.target.result.split(",")[1]);
+      setResult(null); setError(null);
+    };
+    r.readAsDataURL(file);
+  }, []);
+
+  const analyze = async () => {
+    if (!imgData) return;
+    if (!apiKey.trim()) { setError("Ingresá tu API key de Anthropic."); return; }
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey.trim(),
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          system: buildSystem(
+            STYLES.find(s=>s.id===style)?.label||style,
+            PLATFORMS.find(p=>p.id===platform)?.label||platform
+          ),
+          messages:[{role:"user",content:[
+            {type:"image",source:{type:"base64",media_type:"image/jpeg",data:imgData}},
+            {type:"text",text:"Analyze this room and return the JSON staging prompt."}
+          ]}]
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      const txt = data.content?.find(b=>b.type==="text")?.text||"";
+      const parsed = JSON.parse(txt.replace(/```json|```/g,"").trim());
+      setResult(parsed); setMain(parsed.main_prompt); setNeg(parsed.negative_prompt);
+      setHistory(h=>[{id:Date.now(),image,style,platform,result:parsed,ts:new Date().toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})},...h.slice(0,9)]);
+      setTab("editor");
+    } catch(e) {
+      setError(e.message?.includes("401")?"API key inválida. Verificá en console.anthropic.com":"Error al analizar la imagen. Intentá de nuevo.");
+    } finally { setLoading(false); }
+  };
+
+  const copy = (text, key) => {
+    navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(()=>setCopied(null), 2000);
+  };
+
+  const CopyBtn = ({text, k}) => (
+    <button onClick={()=>copy(text,k)} style={{
+      background: copied===k?"var(--bg-success)":"var(--bg-secondary)",
+      color: copied===k?"var(--text-success)":"var(--text-secondary)",
+      display:"flex",alignItems:"center",gap:4,padding:"3px 10px",fontSize:12
+    }}>
+      <i className={`ti ${copied===k?"ti-check":"ti-copy"}`} style={{fontSize:12}} />
+      {copied===k?"Copiado":"Copiar"}
+    </button>
+  );
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:0}}>
+
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"1.5rem"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div className="logo"><i className="ti ti-home-2" /></div>
+          <div>
+            <p style={{fontSize:11,color:"var(--text-tertiary)",textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:500}}>Real estate AI</p>
+            <h1 style={{fontSize:18,fontWeight:500,color:"var(--text)"}}>Staging prompt generator</h1>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:4}}>
+          <button className={`tab-btn${tab==="editor"?" active":""}`} onClick={()=>setTab("editor")}>Editor</button>
+          <button className={`tab-btn${tab==="history"?" active":""}`} onClick={()=>setTab("history")}>
+            Historial{history.length?` (${history.length})`:""}
+          </button>
+        </div>
+      </div>
+
+      {/* HISTORY */}
+      {tab==="history" && (
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {history.length===0
+            ? <div style={{padding:"3rem 0",textAlign:"center"}}>
+                <i className="ti ti-history" style={{fontSize:30,color:"var(--text-tertiary)"}} />
+                <p style={{marginTop:10,color:"var(--text-secondary)",fontSize:14}}>Sin análisis en esta sesión todavía.</p>
+              </div>
+            : history.map(item=>(
+                <div key={item.id} className="hist-item" onClick={()=>{
+                  setImage(item.image);setImgData(null);
+                  setStyle(item.style);setPlatform(item.platform);
+                  setResult(item.result);setMain(item.result.main_prompt);setNeg(item.result.negative_prompt);
+                  setTab("editor");
+                }}>
+                  <img src={item.image} style={{width:52,height:52,objectFit:"cover",borderRadius:8,flexShrink:0}} />
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{fontWeight:500,fontSize:14}}>{item.result.room_type}</p>
+                    <p style={{fontSize:12,color:"var(--text-secondary)",marginTop:2}}>
+                      {STYLES.find(s=>s.id===item.style)?.label} · {PLATFORMS.find(p=>p.id===item.platform)?.label}
+                    </p>
+                  </div>
+                  <span style={{fontSize:12,color:"var(--text-tertiary)"}}>{item.ts}</span>
+                </div>
+              ))
+          }
+        </div>
+      )}
+
+      {/* EDITOR */}
+      {tab==="editor" && (
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+
+          {/* API Key */}
+          <div className="card">
+            <p className="label"><i className="ti ti-key" style={{marginRight:4,fontSize:12}} />API key de Anthropic</p>
+            <div style={{display:"flex",gap:8}}>
+              <input
+                type={showKey?"text":"password"}
+                placeholder="sk-ant-api03-..."
+                value={apiKey}
+                onChange={e=>{setApiKey(e.target.value);setError(null);}}
+                style={{fontFamily:"monospace",fontSize:13}}
+              />
+              <button onClick={()=>setShowKey(v=>!v)} style={{flexShrink:0,padding:"0 12px"}}>
+                <i className={`ti ${showKey?"ti-eye-off":"ti-eye"}`} style={{fontSize:15}} />
+              </button>
+            </div>
+            <p style={{fontSize:12,color:"var(--text-tertiary)",marginTop:6,lineHeight:1.5}}>
+              Obtenela en <strong>console.anthropic.com</strong> → API Keys. Solo se usa en tu navegador, no se guarda en ningún servidor.
+            </p>
+          </div>
+
+          {/* Upload */}
+          <div
+            className={`drop-zone${over?" over":""}`}
+            style={{padding:image?0:"2rem 1rem",overflow:"hidden"}}
+            onClick={()=>fileRef.current?.click()}
+            onDrop={e=>{e.preventDefault();setOver(false);loadFile(e.dataTransfer.files[0]);}}
+            onDragOver={e=>{e.preventDefault();setOver(true);}}
+            onDragLeave={()=>setOver(false)}
+          >
+            <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={e=>loadFile(e.target.files[0])} />
+            {image
+              ? <div style={{position:"relative"}}>
+                  <img src={image} className="preview" alt="Ambiente" />
+                  <span style={{position:"absolute",bottom:8,right:8,background:"rgba(0,0,0,0.55)",color:"white",fontSize:12,padding:"4px 10px",borderRadius:7,fontWeight:500}}>
+                    <i className="ti ti-refresh" style={{marginRight:4,fontSize:12}} />Cambiar
+                  </span>
+                </div>
+              : <div style={{textAlign:"center"}}>
+                  <i className="ti ti-photo-up" style={{fontSize:28,color:"var(--text-tertiary)"}} />
+                  <p style={{margin:"8px 0 3px",fontWeight:500}}>Arrastrá o hacé click para subir</p>
+                  <p style={{fontSize:13,color:"var(--text-secondary)"}}>JPG · PNG · WEBP — foto del espacio vacío</p>
+                </div>
+            }
+          </div>
+
+          {/* Style */}
+          <div>
+            <p className="label">Estilo de decoración</p>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+              {STYLES.map(s=>(
+                <button key={s.id} className={`pill${style===s.id?" active":""}`} onClick={()=>setStyle(s.id)}>{s.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Platform */}
+          <div>
+            <p className="label">Plataforma destino</p>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+              {PLATFORMS.map(p=>(
+                <button key={p.id} className={`pill${platform===p.id?" active":""}`} onClick={()=>setPlatform(p.id)}>{p.label}</button>
+              ))}
+            </div>
+            <p className="tip-box">
+              <i className="ti ti-info-circle" style={{marginRight:5,fontSize:13,verticalAlign:-2}} />
+              {TIPS[platform]}
+            </p>
+          </div>
+
+          {/* Generate */}
+          {image && (
+            <button
+              onClick={analyze}
+              disabled={loading}
+              style={{width:"100%",padding:"10px",fontSize:14,fontWeight:500,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}
+            >
+              <i className={`ti ${loading?"ti-loader-2 spinning":"ti-wand"}`} style={{fontSize:16}} />
+              {loading?"Analizando espacio...":"Generar prompt"}
+            </button>
+          )}
+
+          {error && <div className="err"><i className="ti ti-alert-circle" style={{marginRight:6,fontSize:15,verticalAlign:-2}} />{error}</div>}
+
+          {/* Results */}
+          {result && (
+            <div style={{display:"flex",flexDirection:"column",gap:12,paddingTop:14,borderTop:"0.5px solid var(--border)"}}>
+
+              {/* Stats */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
+                {[["Ambiente",result.room_type],["Estilo detectado",result.detected_style],["Iluminación",result.lighting],["Techo",result.ceiling_height]].map(([l,v])=>(
+                  <div key={l} className="stat">
+                    <p style={{fontSize:11,color:"var(--text-tertiary)",textTransform:"uppercase",letterSpacing:"0.06em",fontWeight:500,marginBottom:3}}>{l}</p>
+                    <p style={{fontSize:13,fontWeight:500}}>{v}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Preserved */}
+              {result.fixed_elements?.length>0 && (
+                <div className="card">
+                  <p className="label"><i className="ti ti-shield-check" style={{marginRight:4,fontSize:12}} />Elementos preservados</p>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                    {result.fixed_elements.map(el=><span key={el} className="tag tag-green"><i className="ti ti-check" style={{marginRight:4,fontSize:11}} />{el}</span>)}
+                  </div>
+                </div>
+              )}
+
+              {/* Furniture */}
+              {result.furniture_added?.length>0 && (
+                <div className="card">
+                  <p className="label"><i className="ti ti-armchair" style={{marginRight:4,fontSize:12}} />Muebles y decoración sugeridos</p>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                    {result.furniture_added.map(el=><span key={el} className="tag tag-gray">{el}</span>)}
+                  </div>
+                </div>
+              )}
+
+              {/* Main prompt */}
+              <div className="card">
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                  <p className="label" style={{margin:0}}><i className="ti ti-file-text" style={{marginRight:4,fontSize:12}} />Prompt principal — editable</p>
+                  <CopyBtn text={main} k="main" />
+                </div>
+                <textarea value={main} onChange={e=>setMain(e.target.value)} rows={6} style={{fontSize:12,fontFamily:"monospace"}} />
+              </div>
+
+              {/* Negative prompt */}
+              <div className="card">
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                  <p className="label" style={{margin:0}}><i className="ti ti-ban" style={{marginRight:4,fontSize:12}} />Negative prompt — editable</p>
+                  <CopyBtn text={neg} k="neg" />
+                </div>
+                <textarea value={neg} onChange={e=>setNeg(e.target.value)} rows={3} style={{fontSize:12,fontFamily:"monospace"}} />
+              </div>
+
+              {/* Platform tip */}
+              {result.platform_tip && (
+                <div className="tip-box" style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                  <i className="ti ti-video" style={{fontSize:15,flexShrink:0,marginTop:2}} />
+                  <span>{result.platform_tip}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Footer */}
+      <p style={{fontSize:12,color:"var(--text-tertiary)",textAlign:"center",marginTop:"2.5rem"}}>
+        Tu API key se usa solo localmente y nunca se almacena · Powered by Claude
+      </p>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
