@@ -249,20 +249,30 @@ const TIPS = {
 };
 
 const buildSystem = (style, platform) => `You are an expert AI prompt engineer for real estate virtual staging.
-Analyze the empty room photo and generate a professional staging prompt optimized for ${platform}.
+Analyze the empty room or outdoor space photo and generate a professional staging prompt optimized for ${platform}.
 Preferred interior style: ${style}.
 
 STRICT RULES:
-- Never alter walls, ceilings, floors, windows, doors, columns, or any structural element
+- Never alter existing walls, ceilings, floors, windows, doors, columns, or any structural element already present
 - Never change existing paint colors or floor finishes
 - Never add out-of-context elements (no cars indoors, no outdoor furniture inside, etc.)
 - Respect existing scale, perspective, depth, and proportions
-- Only add furniture and decor fitting the detected room type
+- Only add furniture, decor, or construction elements fitting the detected space type
 
-ANALYSIS: room type, architectural style, fixed elements, natural light, spatial scale.
+CONSTRUCTION WORKERS RULE — apply when heavy structural elements are needed (pergola, wall, fence, column, beam, roof structure, heavy masonry, steel frame, etc.):
+- Detect if the staging requires adding any heavy structural or construction element
+- If yes: include 1-3 construction workers physically interacting with that element
+- Workers MUST be fully grounded: feet flat on floor, ladder rungs, scaffold, or ground — never floating
+- Worker posture must match the exact action: building upward = arms raised looking up; laying foundation = crouching looking down; installing beam = both hands gripping at beam height
+- Worker clothing: helmets, work boots, high-vis vest or work clothes — consistent with scene lighting
+- Worker positions must align with the camera perspective and vanishing points — no limbs clipping through surfaces
+- Number of workers matches scale: small pergola = 1-2 workers, large wall or structure = 2-3 workers
+- If NO heavy construction element is needed, set requires_construction to false, construction_element and construction_workers to null
+
+ANALYSIS: room/space type, architectural style, fixed elements, natural light direction, spatial scale, camera angle and vanishing point.
 
 Respond ONLY with valid JSON, no markdown, no extra text:
-{"room_type":"","detected_style":"","lighting":"","ceiling_height":"low/standard/high","fixed_elements":[],"furniture_added":[],"main_prompt":"","negative_prompt":"","platform_tip":""}`;
+{"room_type":"","detected_style":"","lighting":"","ceiling_height":"low/standard/high","fixed_elements":[],"furniture_added":[],"requires_construction":false,"construction_element":null,"construction_workers":null,"main_prompt":"","negative_prompt":"","platform_tip":""}`;
 
 function App() {
   const [apiKey,   setApiKey]   = useState("");
@@ -515,6 +525,15 @@ function App() {
                   <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                     {result.furniture_added.map(el=><span key={el} className="tag tag-gray">{el}</span>)}
                   </div>
+                </div>
+              )}
+
+              {/* Construction workers */}
+              {result.requires_construction && result.construction_workers && (
+                <div className="card" style={{border:"0.5px solid rgba(186,117,23,0.4)",background:"rgba(250,238,218,0.4)"}}>
+                  <p className="label"><i className="ti ti-hard-hat" style={{marginRight:4,fontSize:12}} />Construcción detectada</p>
+                  <p style={{fontSize:12,fontWeight:500,marginBottom:6}}><i className="ti ti-building" style={{marginRight:4,fontSize:12}} />{result.construction_element}</p>
+                  <p style={{fontSize:13,lineHeight:1.6,color:"var(--text)"}}>{result.construction_workers}</p>
                 </div>
               )}
 
